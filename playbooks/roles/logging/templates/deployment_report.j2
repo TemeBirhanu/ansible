@@ -1,0 +1,35 @@
+Deployment Report
+================
+Generated on: {{ ansible_date_time.iso8601 }}
+
+Deployed Servers
+---------------
+{% for host in groups['all'] %}
+Server: {{ host }}
+IP Address: {{ hostvars[host]['ansible_host'] }}
+{% endfor %}
+
+Service Status
+-------------
+{% for host in groups['all'] %}
+Server: {{ host }}
+{% if 'webservers' in hostvars[host]['group_names'] %}
+- Apache: {{ hostvars[host]['apache_status']['stdout'] | default('Not installed') }}
+{% endif %}
+{% if 'databases' in hostvars[host]['group_names'] %}
+- MySQL: {{ hostvars[host]['mysql_status']['stdout'] | default('Not installed') }}
+{% endif %}
+{% if 'sveltekit' in hostvars[host]['group_names'] %}
+- SvelteKit: {{ hostvars[host]['sveltekit_status']['stdout'] | default('Not installed') }}
+{% endif %}
+- Node Exporter: {{ hostvars[host]['node_exporter_status']['stdout'] | default('Not installed') }}
+{% endfor %}
+
+Log Locations
+------------
+All logs are stored in: {{ playbook_dir }}/../logs/
+Server-specific logs are in their respective subdirectories.
+
+Report Location
+--------------
+This report is saved at: {{ playbook_dir }}/../reports/ 

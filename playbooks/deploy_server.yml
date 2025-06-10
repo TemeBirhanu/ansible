@@ -21,4 +21,9 @@
   hosts: all
   become: yes
   roles:
-    - monitoring 
+    - monitoring
+
+- name: Collect Logs and Generate Report
+  hosts: all
+  roles:
+    - logging 
