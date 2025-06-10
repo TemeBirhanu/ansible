@@ -1,0 +1,57 @@
+---
+- name: Create Node Exporter user
+  user:
+    name: node_exporter
+    system: yes
+    shell: /sbin/nologin
+  become: yes
+
+- name: Download Node Exporter
+  get_url:
+    url: https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-amd64.tar.gz
+    dest: /tmp/node_exporter.tar.gz
+  become: yes
+
+- name: Extract Node Exporter
+  unarchive:
+    src: /tmp/node_exporter.tar.gz
+    dest: /opt
+    remote_src: yes
+  become: yes
+
+- name: Move Node Exporter binary
+  file:
+    src: /opt/node_exporter-1.7.0.linux-amd64/node_exporter
+    dest: /usr/local/bin/node_exporter
+    mode: '0755'
+    state: link
+  become: yes
+
+- name: Create Node Exporter service
+  template:
+    src: node_exporter.service.j2
+    dest: /etc/systemd/system/node_exporter.service
+    mode: '0644'
+  become: yes
+  notify: restart node_exporter
+
+- name: Start and enable Node Exporter
+  systemd:
+    name: node_exporter
+    state: started
+    enabled: yes
+    daemon_reload: yes
+  become: yes
+
+- name: Allow Node Exporter port
+  ufw:
+    rule: allow
+    port: '9100'
+    proto: tcp
+  become: yes
+
+- name: Verify Node Exporter is running
+  wait_for:
+    port: 9100
+    timeout: 10
+  become: yes 

@@ -101,13 +101,3 @@
 - name: Display PM2 status
   debug:
     var: pm2_status.stdout_lines
-
-- name: Check PM2 logs
-  shell: pm2 logs event-manager --lines 50
-  register: pm2_logs
-  become: no
-  become_user: teme
-
-- name: Display PM2 logs
-  debug:
-    var: pm2_logs.stdout_lines 

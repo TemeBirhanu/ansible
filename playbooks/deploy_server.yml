@@ -15,4 +15,10 @@
   hosts: sveltekit
   become: yes
   roles:
-    - sveltekit 
+    - sveltekit
+
+- name: Deploy Monitoring
+  hosts: all
+  become: yes
+  roles:
+    - monitoring 
