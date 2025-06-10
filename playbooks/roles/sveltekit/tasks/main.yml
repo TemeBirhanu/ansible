@@ -1,0 +1,113 @@
+---
+- name: Install Node.js and npm
+  apt:
+    name: 
+      - nodejs
+      - npm
+    state: present
+    update_cache: yes
+
+- name: Install Git
+  apt:
+    name: git
+    state: present
+
+- name: Create application directory
+  file:
+    path: /var/www/event-manager
+    state: directory
+    mode: '0755'
+    owner: teme
+    group: teme
+
+- name: Clone the repository
+  git:
+    repo: https://github.com/TemeBirhanu/event-manager.git
+    dest: /var/www/event-manager
+    version: main
+    force: yes
+  become: no
+  become_user: teme
+
+- name: Install dependencies
+  npm:
+    path: /var/www/event-manager
+    state: present
+
+- name: Build the application
+  command: npm run build
+  args:
+    chdir: /var/www/event-manager
+
+- name: Install PM2 globally
+  npm:
+    name: pm2
+    global: yes
+    state: present
+
+- name: Create PM2 directory
+  file:
+    path: /home/teme/.pm2
+    state: directory
+    owner: teme
+    group: teme
+    mode: '0755'
+  become: yes
+
+- name: Stop existing PM2 process if running
+  command: pm2 delete event-manager
+  ignore_errors: yes
+  become: no
+  become_user: teme
+
+- name: Kill any existing PM2 daemon
+  shell: pm2 kill
+  become: no
+  become_user: teme
+  ignore_errors: yes
+
+- name: Start the application with PM2
+  shell: |
+    cd /var/www/event-manager
+    pm2 start npm --name "event-manager" -- run preview -- --host 0.0.0.0 --port 3000
+  args:
+    executable: /bin/bash
+  become: no
+  become_user: teme
+
+- name: Save PM2 process list
+  command: pm2 save
+  become: no
+  become_user: teme
+
+- name: Setup PM2 startup
+  shell: |
+    pm2 startup
+    pm2 save
+  become: yes
+  become_user: teme
+
+- name: Wait for PM2 process to start
+  wait_for:
+    timeout: 10
+  register: pm2_wait
+
+- name: Check PM2 process status
+  shell: pm2 status
+  register: pm2_status
+  become: no
+  become_user: teme
+
+- name: Display PM2 status
+  debug:
+    var: pm2_status.stdout_lines
+
+- name: Check PM2 logs
+  shell: pm2 logs event-manager --lines 50
+  register: pm2_logs
+  become: no
+  become_user: teme
+
+- name: Display PM2 logs
+  debug:
+    var: pm2_logs.stdout_lines 

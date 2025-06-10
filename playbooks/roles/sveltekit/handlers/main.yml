@@ -1,0 +1,4 @@
+---
+- name: restart event-manager
+  command: pm2 restart event-manager
+  ignore_errors: yes 

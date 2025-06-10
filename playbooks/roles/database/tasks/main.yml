@@ -1,0 +1,53 @@
+---
+# Tasks for database role
+- name: Install MySQL Python module
+  apt:
+    name: python3-pymysql
+    state: present
+    update_cache: yes
+
+- name: Install MySQL Server
+  apt:
+    name: mysql-server
+    state: present
+    update_cache: yes
+
+- name: Ensure MySQL is running
+  service:
+    name: mysql
+    state: started
+    enabled: yes
+
+- name: Get MySQL root password
+  shell: sudo cat /etc/mysql/debian.cnf | grep password | head -n 1 | awk '{print $3}'
+  register: mysql_root_password
+  changed_when: false
+
+- name: Set MySQL root password and privileges
+  command: mysql -u debian-sys-maint -p"{{ mysql_root_password.stdout }}" -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '12345678'; GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION; FLUSH PRIVILEGES;"
+  changed_when: true
+
+- name: Create event_manager database
+  mysql_db:
+    name: event_manager
+    state: present
+    login_user: root
+    login_password: 12345678
+
+- name: Create MySQL user for event_manager
+  command: mysql -u root -p12345678 -e "CREATE USER IF NOT EXISTS 'event_manager'@'localhost' IDENTIFIED BY '12345678'; GRANT ALL PRIVILEGES ON event_manager.* TO 'event_manager'@'localhost'; FLUSH PRIVILEGES;"
+  changed_when: true
+
+- name: Copy init.sql to remote server
+  copy:
+    src: files/init.sql
+    dest: /tmp/init.sql
+    mode: '0644'
+
+- name: Run init.sql
+  mysql_db:
+    name: event_manager
+    state: import
+    target: /tmp/init.sql
+    login_user: root
+    login_password: 12345678 

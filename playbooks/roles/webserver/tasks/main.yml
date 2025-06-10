@@ -1,0 +1,23 @@
+---
+# Tasks for webserver role
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install Apache
+  apt:
+    name: apache2
+    state: present
+
+- name: Ensure Apache is running
+  service:
+    name: apache2
+    state: started
+    enabled: yes
+
+- name: Copy index.html template
+  template:
+    src: index.html.j2
+    dest: /var/www/html/index.html
+    mode: '0644' 

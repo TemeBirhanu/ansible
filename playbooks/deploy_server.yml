@@ -1,0 +1,18 @@
+---
+- name: Deploy Web Server
+  hosts: webservers
+  become: yes
+  roles:
+    - webserver
+
+- name: Deploy Database Server
+  hosts: databases
+  become: yes
+  roles:
+    - database
+
+- name: Deploy SvelteKit Application
+  hosts: sveltekit
+  become: yes
+  roles:
+    - sveltekit 
