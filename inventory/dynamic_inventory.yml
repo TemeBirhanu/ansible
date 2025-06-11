@@ -1,0 +1,29 @@
+all:
+  children:
+    webservers:
+      hosts:
+        web1:
+          ansible_host: 192.168.56.101
+          ansible_user: teme
+          ansible_ssh_private_key_file: /home/teme/.ssh/id_ed25519_web1
+          ansible_become: true
+          ansible_become_method: sudo
+          ansible_become_pass: "1234"
+    databases:
+      hosts:
+        db1:
+          ansible_host: 192.168.56.102
+          ansible_user: temu
+          ansible_ssh_private_key_file: /home/teme/.ssh/id_ed25519_db1
+          ansible_become: true
+          ansible_become_method: sudo
+          ansible_become_pass: "1234"
+    sveltekit:
+      hosts:
+        server3:
+          ansible_host: 192.168.56.104
+          ansible_user: teme
+          ansible_ssh_private_key_file: /home/teme/.ssh/id_ed25519_server3
+          ansible_become: true
+          ansible_become_method: sudo
+          ansible_become_pass: "1234" 
