@@ -6,11 +6,13 @@
       - npm
     state: present
     update_cache: yes
+  become: yes
 
 - name: Install Git
   apt:
     name: git
     state: present
+  become: yes
 
 - name: Create application directory
   file:
@@ -33,26 +35,30 @@
   npm:
     path: /var/www/event-manager
     state: present
+  become: yes
 
 - name: Build the application
   command: npm run build
   args:
     chdir: /var/www/event-manager
+  become: yes
 
 - name: Install PM2 globally
   npm:
     name: pm2
     global: yes
     state: present
+  become: yes
 
 - name: Create PM2 directory
   file:
     path: /home/teme/.pm2
     state: directory
+    mode: '0755'
     owner: teme
     group: teme
-    mode: '0755'
-  become: yes
+  become: no
+  become_user: teme
 
 - name: Stop existing PM2 process if running
   command: pm2 delete event-manager
@@ -66,14 +72,32 @@
   become_user: teme
   ignore_errors: yes
 
-- name: Start the application with PM2
-  shell: |
-    cd /var/www/event-manager
-    pm2 start npm --name "event-manager" -- run preview -- --host 0.0.0.0 --port 3000
-  args:
-    executable: /bin/bash
-  become: no
-  become_user: teme
+- block:
+    - name: Start the application with PM2
+      shell: |
+        cd /var/www/event-manager
+        pm2 start npm --name "event-manager" -- run preview -- --host 0.0.0.0 --port 3000
+      args:
+        executable: /bin/bash
+      become: no
+      become_user: teme
+  rescue:
+    - name: Retry PM2 start
+      shell: pm2 restart event-manager
+      become: no
+      become_user: teme
+    - name: Check PM2 status
+      shell: pm2 list | grep event-manager
+      register: pm2_status
+      changed_when: false
+    - name: Notify PM2 failure
+      debug:
+        msg: "SvelteKit failed to start after retry. Please check logs at /home/teme/.pm2/logs/event-manager-out.log"
+      when: pm2_status.rc != 0
+  always:
+    - name: Log PM2 status
+      debug:
+        msg: "SvelteKit service management completed"
 
 - name: Save PM2 process list
   command: pm2 save

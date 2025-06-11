@@ -5,18 +5,38 @@
     name: python3-pymysql
     state: present
     update_cache: yes
+  become: yes
 
 - name: Install MySQL Server
   apt:
     name: mysql-server
     state: present
     update_cache: yes
+  become: yes
 
-- name: Ensure MySQL is running
-  service:
-    name: mysql
-    state: started
-    enabled: yes
+- block:
+    - name: Ensure MySQL is running
+      service:
+        name: mysql
+        state: started
+        enabled: yes
+  rescue:
+    - name: Retry MySQL start
+      service:
+        name: mysql
+        state: restarted
+    - name: Check MySQL status
+      shell: systemctl is-active mysql
+      register: mysql_status
+      changed_when: false
+    - name: Notify MySQL failure
+      debug:
+        msg: "MySQL failed to start after retry. Please check logs at /var/log/mysql/error.log"
+      when: mysql_status.rc != 0
+  always:
+    - name: Log MySQL status
+      debug:
+        msg: "MySQL service management completed"
 
 - name: Get MySQL root password
   shell: sudo cat /etc/mysql/debian.cnf | grep password | head -n 1 | awk '{print $3}'

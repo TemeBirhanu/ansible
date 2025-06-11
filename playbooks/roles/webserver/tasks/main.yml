@@ -4,20 +4,77 @@
   apt:
     update_cache: yes
     cache_valid_time: 3600
+  become: yes
 
 - name: Install Apache
   apt:
     name: apache2
     state: present
+  become: yes
 
-- name: Ensure Apache is running
-  service:
-    name: apache2
-    state: started
-    enabled: yes
+- name: Install required Apache modules
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - libapache2-mod-php
+    - php-mysql
+  become: yes
 
-- name: Copy index.html template
+- block:
+    - name: Start Apache
+      service:
+        name: apache2
+        state: started
+        enabled: yes
+      become: yes
+  rescue:
+    - name: Retry Apache start
+      service:
+        name: apache2
+        state: restarted
+      become: yes
+    - name: Check Apache status
+      shell: systemctl is-active apache2
+      register: apache_status
+      changed_when: false
+    - name: Notify Apache failure
+      debug:
+        msg: "Apache failed to start after retry. Please check logs at /var/log/apache2/error.log"
+      when: apache_status.rc != 0
+  always:
+    - name: Log Apache status
+      debug:
+        msg: "Apache service management completed"
+
+- name: Configure virtual host
+  template:
+    src: vhost.conf.j2
+    dest: /etc/apache2/sites-available/000-default.conf
+  become: yes
+  notify: restart apache
+
+- name: Enable required Apache modules
+  apache2_module:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - rewrite
+    - headers
+  become: yes
+  notify: restart apache
+
+- name: Create web root directory
+  file:
+    path: /var/www/html
+    state: directory
+    mode: '0755'
+  become: yes
+
+- name: Deploy index.html
   template:
     src: index.html.j2
     dest: /var/www/html/index.html
-    mode: '0644' 
+    mode: '0644'
+  become: yes
+  notify: restart apache 
