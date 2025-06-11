@@ -6,10 +6,26 @@
     shell: /sbin/nologin
   become: yes
 
+- name: Allow outbound traffic to GitHub
+  ufw:
+    rule: allow
+    port: '80,443'
+    proto: tcp
+    direction: out
+  become: yes
+
+- name: Allow Node Exporter port
+  ufw:
+    rule: allow
+    port: '9100'
+    proto: tcp
+  become: yes
+
 - name: Download Node Exporter
   get_url:
     url: https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-amd64.tar.gz
     dest: /tmp/node_exporter.tar.gz
+    timeout: 300
   become: yes
 
 - name: Extract Node Exporter
@@ -41,13 +57,6 @@
     state: started
     enabled: yes
     daemon_reload: yes
-  become: yes
-
-- name: Allow Node Exporter port
-  ufw:
-    rule: allow
-    port: '9100'
-    proto: tcp
   become: yes
 
 - name: Verify Node Exporter is running

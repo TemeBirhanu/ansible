@@ -125,3 +125,24 @@
 - name: Display PM2 status
   debug:
     var: pm2_status.stdout_lines
+
+- name: Allow HTTP traffic
+  ufw:
+    rule: allow
+    port: 80
+    proto: tcp
+  become: yes
+
+- name: Allow HTTPS traffic
+  ufw:
+    rule: allow
+    port: 443
+    proto: tcp
+  become: yes
+
+- name: Allow SvelteKit development server
+  ufw:
+    rule: allow
+    port: 3000
+    proto: tcp
+  become: yes

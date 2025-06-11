@@ -6,6 +6,21 @@
     cache_valid_time: 3600
   become: yes
 
+- name: Allow HTTP traffic
+  ufw:
+    rule: allow
+    port: 80
+    proto: tcp
+  become: yes
+
+- name: Allow outbound traffic to GitHub
+  ufw:
+    rule: allow
+    port: '80,443'
+    proto: tcp
+    direction: out
+  become: yes
+
 - name: Install Apache
   apt:
     name: apache2
